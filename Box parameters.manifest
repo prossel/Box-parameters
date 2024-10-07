@@ -1,0 +1,13 @@
+{
+	"autodeskProduct":	"Fusion",
+	"type":	"addin",
+	"id":	"16c3a358-ce4b-432f-a83a-adbd4f5f8fe1",
+	"author":	"Pierre Rossel",
+	"description":	{
+		"":	"Box parameters dialog"
+	},
+	"version":	"1.0.1",
+	"runOnStartup":	false,
+	"supportedOS":	"windows|mac",
+	"editEnabled":	true
+}

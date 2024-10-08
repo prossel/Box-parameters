@@ -8,6 +8,8 @@ An add-in for Autodesk Fusion 360 that provides custom parameters dialog dedicat
 ![Box parameters Demo](commands/commandDialog/resources/box_parameters_demo.png)
 
 - Slider bars to intuitively adjust the parameters (click, drag or scroll)
+- Compatible with the parameter box tutorial of this video: <https://www.youtube.com/watch?v=77HIIhUTk6w>
+- Compatible with any Fusion 360 drawing that has the same parameter names, even if they are not all used.
 
 ## Installation
 
@@ -34,7 +36,7 @@ or
 
 ## Limitations
 
-- Current version only works with specific parameter names. It can be used with any file that has at least these parameters names confirgured in mm:
+- Current version only works with specific parameter names. It can be used with any file that has at least these parameters names configured in mm:
   - xSize
   - ySize
   - zSize

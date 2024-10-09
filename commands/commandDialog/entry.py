@@ -11,6 +11,7 @@ userParams = design.userParameters
 
 # TODO *** Specify the command identity information. ***
 CMD_ID = f'{config.COMPANY_NAME}_{config.ADDIN_NAME}_cmdDialog'
+print(CMD_ID)
 CMD_NAME = 'Box parameters'
 CMD_Description = 'A Fusion Add-in Command with a dialog'
 
@@ -39,6 +40,22 @@ heightParam = userParams.itemByName('zSize')
 thicknessParam = userParams.itemByName('thickness')
 targetTabWidthParam = userParams.itemByName('targetTabWidth')
 
+# Check if any of the user parameters are missing and ask the user to create them
+if lengthParam is None or widthParam is None or heightParam is None or thicknessParam is None or targetTabWidthParam is None:
+    msg = 'One or more user parameters are missing. Would you like to create them?'
+    if ui.messageBox(msg, 'Missing User Parameters', adsk.core.MessageBoxButtonTypes.YesNoButtonType) == adsk.core.DialogResults.DialogYes:
+        if lengthParam is None:
+            lengthParam = userParams.add('xSize', adsk.core.ValueInput.createByString('80 mm'), 'mm', 'Length of the box')
+        if widthParam is None:
+            widthParam = userParams.add('ySize', adsk.core.ValueInput.createByString('60 mm') , 'mm', 'Width of the box')
+        if heightParam is None:
+            heightParam = userParams.add('zSize', adsk.core.ValueInput.createByString('50 mm'), 'mm', 'Height of the box')
+        if thicknessParam is None:
+            thicknessParam = userParams.add('thickness', adsk.core.ValueInput.createByString('3 mm'), 'mm', 'Thickness of the material')
+        if targetTabWidthParam is None:
+            targetTabWidthParam = userParams.add('targetTabWidth', adsk.core.ValueInput.createByString('10 mm'), 'mm', 'Target width of the tabs')
+    else:
+        ui.messageBox('User parameters are missing. Exiting command.')
 
 # Executed when add-in is run.
 def start():
@@ -99,22 +116,22 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
     # inputs.addValueInput('value_input', 'Some Value', defaultLengthUnits, default_value)
 
     # create input to dislay current value
-    inputs.addTextBoxCommandInput('prev_length', 'Previous Length', lengthParam.expression, 1, True)
+    # inputs.addTextBoxCommandInput('prev_length', 'Previous Length', lengthParam.expression, 1, True)
 
     # Crate a float Slider
-    sliderLength = inputs.addFloatSliderCommandInput('sliderLength', 'Slider length', 'mm',  1, 20, False)
+    sliderLength = inputs.addFloatSliderCommandInput('sliderLength', 'Length', 'mm',  1, 20, False)
     sliderLength.valueOne = lengthParam.value
     
-    sliderWidth = inputs.addFloatSliderCommandInput('sliderWidth', 'Slider width', 'mm',  1, 20, False)
+    sliderWidth = inputs.addFloatSliderCommandInput('sliderWidth', 'Width', 'mm',  1, 20, False)
     sliderWidth.valueOne = widthParam.value
     
-    sliderHeight = inputs.addFloatSliderCommandInput('sliderHeight', 'Slider height', 'mm',  1, 20, False)
+    sliderHeight = inputs.addFloatSliderCommandInput('sliderHeight', 'Height', 'mm',  1, 20, False)
     sliderHeight.valueOne = heightParam.value
     
-    sliderThickness = inputs.addFloatSliderCommandInput('sliderThickness', 'Slider thickness', 'mm',  0.1, 1, False)
+    sliderThickness = inputs.addFloatSliderCommandInput('sliderThickness', 'Thickness', 'mm',  0.1, 1, False)
     sliderThickness.valueOne = thicknessParam.value
     
-    sliderTargetTabWidth = inputs.addFloatSliderCommandInput('sliderTargetTabWidth', 'Slider target tab width', 'mm',  0.1, 10, False)
+    sliderTargetTabWidth = inputs.addFloatSliderCommandInput('sliderTargetTabWidth', 'Target tab width', 'mm',  0.1, 10, False)
     sliderTargetTabWidth.valueOne = targetTabWidthParam.value
     
 

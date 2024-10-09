@@ -5,10 +5,6 @@ from ... import config
 app = adsk.core.Application.get()
 ui = app.userInterface
 
-# need to bring in the design and user params
-design = adsk.fusion.Design.cast(app.activeProduct)
-userParams = design.userParameters
-
 # TODO *** Specify the command identity information. ***
 CMD_ID = f'{config.COMPANY_NAME}_{config.ADDIN_NAME}_cmdDialog'
 print(CMD_ID)
@@ -33,29 +29,14 @@ ICON_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'resource
 # they are not released and garbage collected.
 local_handlers = []
 
-# get the user parameters
-lengthParam = userParams.itemByName('xSize')
-widthParam = userParams.itemByName('ySize')
-heightParam = userParams.itemByName('zSize')
-thicknessParam = userParams.itemByName('thickness')
-targetTabWidthParam = userParams.itemByName('targetTabWidth')
-
-# Check if any of the user parameters are missing and ask the user to create them
-if lengthParam is None or widthParam is None or heightParam is None or thicknessParam is None or targetTabWidthParam is None:
-    msg = 'One or more user parameters are missing. Would you like to create them?'
-    if ui.messageBox(msg, 'Missing User Parameters', adsk.core.MessageBoxButtonTypes.YesNoButtonType) == adsk.core.DialogResults.DialogYes:
-        if lengthParam is None:
-            lengthParam = userParams.add('xSize', adsk.core.ValueInput.createByString('80 mm'), 'mm', 'Length of the box')
-        if widthParam is None:
-            widthParam = userParams.add('ySize', adsk.core.ValueInput.createByString('60 mm') , 'mm', 'Width of the box')
-        if heightParam is None:
-            heightParam = userParams.add('zSize', adsk.core.ValueInput.createByString('50 mm'), 'mm', 'Height of the box')
-        if thicknessParam is None:
-            thicknessParam = userParams.add('thickness', adsk.core.ValueInput.createByString('3 mm'), 'mm', 'Thickness of the material')
-        if targetTabWidthParam is None:
-            targetTabWidthParam = userParams.add('targetTabWidth', adsk.core.ValueInput.createByString('10 mm'), 'mm', 'Target width of the tabs')
-    else:
-        ui.messageBox('User parameters are missing. Exiting command.')
+userParams = None
+params = {
+    'xSize':            {'default': '80 mm', 'unit': 'mm', 'description': 'Length of the box', 'range': (1, 20)},
+    'ySize':            {'default': '60 mm', 'unit': 'mm', 'description': 'Width of the box', 'range': (1, 20)},
+    'zSize':            {'default': '50 mm', 'unit': 'mm', 'description': 'Height of the box', 'range': (1, 20)},
+    'thickness':        {'default':  '3 mm', 'unit': 'mm', 'description': 'Thickness of the material', 'range': (0.1, 1)},
+    'targetTabWidth':   {'default': '10 mm', 'unit': 'mm', 'description': 'Target width of the tabs', 'range': (0.1, 10)}
+}
 
 # Executed when add-in is run.
 def start():
@@ -102,8 +83,29 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
     # General logging for debug.
     futil.log(f'{CMD_NAME} Command Created Event')
 
+    # need to bring in the design and user params
+    design = adsk.fusion.Design.cast(app.activeProduct)
+    global userParams
+    userParams = design.userParameters
+
     # https://help.autodesk.com/view/fusion360/ENU/?contextId=CommandInputs
     inputs = args.command.commandInputs
+
+    # get the user parameters
+    for name in params:
+        params[name]['userParam'] = userParams.itemByName(name)
+
+    # Check if any of the params[name]['userParam'] are missing and ask the user to create them
+    if any(params[name]['userParam'] is None for name in params):
+        msg = 'One or more user parameters are missing. Would you like to create them?'
+        if ui.messageBox(msg, 'Missing User Parameters', adsk.core.MessageBoxButtonTypes.YesNoButtonType) == adsk.core.DialogResults.DialogYes:
+            for name in params:
+                futil.log(f'Creating {name} parameter')
+                if params[name]['userParam'] is None:
+                    params[name]['userParam'] = userParams.add(name, adsk.core.ValueInput.createByString(params[name]['default']), params[name]['unit'], params[name]['description'])
+        else:
+            ui.messageBox('User parameters are missing. Exiting command.')
+
 
     # TODO Define the dialog for your command by adding different inputs to the command.
 
@@ -119,22 +121,10 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
     # inputs.addTextBoxCommandInput('prev_length', 'Previous Length', lengthParam.expression, 1, True)
 
     # Crate a float Slider
-    sliderLength = inputs.addFloatSliderCommandInput('sliderLength', 'Length', 'mm',  1, 20, False)
-    sliderLength.valueOne = lengthParam.value
+    for name in params:
+        slider = inputs.addFloatSliderCommandInput(f'slider_{name}', params[name]['description'], params[name]['unit'], params[name]['range'][0], params[name]['range'][1], False)
+        slider.valueOne = params[name]['userParam'].value
     
-    sliderWidth = inputs.addFloatSliderCommandInput('sliderWidth', 'Width', 'mm',  1, 20, False)
-    sliderWidth.valueOne = widthParam.value
-    
-    sliderHeight = inputs.addFloatSliderCommandInput('sliderHeight', 'Height', 'mm',  1, 20, False)
-    sliderHeight.valueOne = heightParam.value
-    
-    sliderThickness = inputs.addFloatSliderCommandInput('sliderThickness', 'Thickness', 'mm',  0.1, 1, False)
-    sliderThickness.valueOne = thicknessParam.value
-    
-    sliderTargetTabWidth = inputs.addFloatSliderCommandInput('sliderTargetTabWidth', 'Target tab width', 'mm',  0.1, 10, False)
-    sliderTargetTabWidth.valueOne = targetTabWidthParam.value
-    
-
     # TODO Connect to the events that are needed by this command.
     futil.add_handler(args.command.execute, command_execute, local_handlers=local_handlers)
     futil.add_handler(args.command.inputChanged, command_input_changed, local_handlers=local_handlers)
@@ -149,17 +139,18 @@ def command_execute(args: adsk.core.CommandEventArgs):
     # General logging for debug.
     futil.log(f'{CMD_NAME} Command Execute Event')
 
-    # TODO ******************************** Your code here ********************************
-
     # Get a reference to your command's inputs.
     inputs = args.command.commandInputs
 
-    # Update the user parameter with the new value
-    userParams.itemByName('xSize').expression = inputs.itemById('sliderLength').expressionOne
-    userParams.itemByName('ySize').expression = inputs.itemById('sliderWidth').expressionOne
-    userParams.itemByName('zSize').expression = inputs.itemById('sliderHeight').expressionOne
-    userParams.itemByName('thickness').expression = inputs.itemById('sliderThickness').expressionOne
-    userParams.itemByName('targetTabWidth').expression = inputs.itemById('sliderTargetTabWidth').expressionOne
+    # Modify all parameters at once
+    parameters = []
+    values = []
+    for name in params:
+        parameters.append(params[name]['userParam'])
+        values.append(adsk.core.ValueInput.createByReal(inputs.itemById(f'slider_{name}').valueOne))
+    design = adsk.fusion.Design.cast(app.activeProduct)
+    res = design.modifyParameters(parameters, values)
+    futil.log(f'Modify parameters result: {res}')
 
 
 # This event handler is called when the command needs to compute a new preview in the graphics window.
@@ -168,12 +159,15 @@ def command_preview(args: adsk.core.CommandEventArgs):
     futil.log(f'{CMD_NAME} Command Preview Event')
     inputs = args.command.commandInputs
 
-    userParams.itemByName('xSize').expression = inputs.itemById('sliderLength').expressionOne
-    userParams.itemByName('ySize').expression = inputs.itemById('sliderWidth').expressionOne
-    userParams.itemByName('zSize').expression = inputs.itemById('sliderHeight').expressionOne
-    userParams.itemByName('thickness').expression = inputs.itemById('sliderThickness').expressionOne
-    userParams.itemByName('targetTabWidth').expression = inputs.itemById('sliderTargetTabWidth').expressionOne
-    
+    # Modify all parameters at once
+    parameters = []
+    values = []
+    for name in params:
+        parameters.append(params[name]['userParam'])
+        values.append(adsk.core.ValueInput.createByReal(inputs.itemById(f'slider_{name}').valueOne))
+    design = adsk.fusion.Design.cast(app.activeProduct)
+    res = design.modifyParameters(parameters, values)
+    futil.log(f'Modify parameters result: {res}')
 
 
 # This event handler is called when the user changes anything in the command dialog
@@ -190,16 +184,16 @@ def command_input_changed(args: adsk.core.InputChangedEventArgs):
 # which allows you to verify that all of the inputs are valid and enables the OK button.
 def command_validate_input(args: adsk.core.ValidateInputsEventArgs):
     # General logging for debug.
-    futil.log(f'{CMD_NAME} Validate Input Event')
+    # futil.log(f'{CMD_NAME} Validate Input Event')
 
     inputs = args.inputs
     
     # Verify the validity of the input values. This controls if the OK button is enabled or not.
-    valueInput = inputs.itemById('value_input')
-    if valueInput.value >= 0:
-        args.areInputsValid = True
-    else:
-        args.areInputsValid = False
+    # valueInput = inputs.itemById('value_input')
+    # if valueInput.value >= 0:
+    #     args.areInputsValid = True
+    # else:
+    #     args.areInputsValid = False
         
 
 # This event handler is called when the command terminates.

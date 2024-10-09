@@ -17,11 +17,11 @@ See this tutorial for an example: [Tutoriel Fusion 360 : Créer une boîte param
 ## Installation
 
 1. Download the source code from the [latest release](https://github.com/prossel/Box-parameters/releases/latest) and extract the archive
-2. Rename to folder to `Box-parameter`
+2. Rename the folder to `Box-parameter`
 3. To permanently install the add-in copy the source code to `C:\Users\%Username%\AppData\Roaming\Autodesk\Autodesk Fusion 360\API\AddIns` on Windows or 
 `~/Library/Application Support/Autodesk/Autodesk Fusion 360/API/AddIns/Box parameters` on Mac.
 
-4. OR to open it from its existing location go to **UTILITIES** toolbar tab > **ADD-INS** > **Add-Ins** tab > Green **+** button and locate the folder
+4. OR open it from its existing location go to **UTILITIES** toolbar tab > **ADD-INS** > **Add-Ins** tab > Green **+** button and locate the folder
 
 ## Running
 
